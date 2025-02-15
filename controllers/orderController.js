@@ -51,32 +51,41 @@ const getOrderedProductsBySeller = async (req, res) => {
     try {
         const sellerId = req.params.id;
 
-        const ordersWithSellerId = await Order.find({
-            'orderedProducts.seller': sellerId
-        });
+        // Fetch orders where the seller has products
+        const ordersWithSellerId = await Order.find({ "orderedProducts.seller": sellerId })
+            .populate("buyer", "name email phoneNo") // ✅ Fetch buyer details
+            .select("orderedProducts buyer"); // ✅ Ensure buyer is selected
+
+        console.log("🛒 Orders with Seller ID:", ordersWithSellerId);
 
         if (ordersWithSellerId.length > 0) {
-            const orderedProducts = ordersWithSellerId.reduce((accumulator, order) => {
+            const orderedProducts = [];
+
+            ordersWithSellerId.forEach(order => {
                 order.orderedProducts.forEach(product => {
-                    const existingProductIndex = accumulator.findIndex(p => p._id.toString() === product._id.toString());
-                    if (existingProductIndex !== -1) {
-                        // If product already exists, merge quantities
-                        accumulator[existingProductIndex].quantity += product.quantity;
-                    } else {
-                        // If product doesn't exist, add it to accumulator
-                        accumulator.push(product);
+                    if (product.seller.toString() === sellerId) {
+                        // ✅ Push a new product entry for each buyer
+                        orderedProducts.push({
+                            ...product.toObject(),
+                            buyer: order.buyer, // ✅ Keep buyer unique for each purchase
+                        });
                     }
                 });
-                return accumulator;
-            }, []);
+            });
+
+            console.log("✅ Final Ordered Products Response:", orderedProducts);
             res.send(orderedProducts);
         } else {
             res.send({ message: "No products found" });
         }
     } catch (err) {
+        console.error("❌ Error Fetching Orders:", err);
         res.status(500).json(err);
     }
 };
+
+
+
 
 module.exports = {
     newOrder,

@@ -4,40 +4,48 @@ const { createNewToken } = require('../utils/token.js');
 
 const sellerRegister = async (req, res) => {
     try {
+        // Hash Password
         const salt = await bcrypt.genSalt(10);
         const hashedPass = await bcrypt.hash(req.body.password, salt);
 
+        // Check if email or shop name already exists
+        const existingSellerByEmail = await Seller.findOne({ email: req.body.email });
+        const existingShop = await Seller.findOne({ shopName: req.body.shopName });
+
+        if (existingSellerByEmail) {
+            return res.send({ message: 'Email already exists' });
+        }
+        if (existingShop) {
+            return res.send({ message: 'Shop name already exists' });
+        }
+
+        // Create new seller
         const seller = new Seller({
             ...req.body,
             password: hashedPass
         });
 
-        const existingSellerByEmail = await Seller.findOne({ email: req.body.email });
-        const existingShop = await Seller.findOne({ shopName: req.body.shopName });
+        // Save seller to DB
+        let result = await seller.save();
+        result.password = undefined;
 
-        if (existingSellerByEmail) {
-            res.send({ message: 'Email already exists' });
-        }
-        else if (existingShop) {
-            res.send({ message: 'Shop name already exists' });
-        }
-        else {
-            let result = await seller.save();
-            result.password = undefined;
+        // Generate token
+        const token = createNewToken(result._id);
 
-            const token = createNewToken(result._id)
+        // Ensure correct data structure
+        result = {
+            ...result.toObject(),
+            token: token
+        };
 
-            result = {
-                ...result._doc,
-                token: token
-            };
-
-            res.send(result);
-        }
+        console.log("Result is: ", result);
+        res.send(result);
     } catch (err) {
-        res.status(500).json(err);
+        console.log("Error:", err); // Debugging
+        res.status(500).json({ error: "Internal Server Error", details: err });
     }
 };
+
 
 const sellerLogIn = async (req, res) => {
     if (req.body.email && req.body.password) {

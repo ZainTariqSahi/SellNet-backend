@@ -14,7 +14,7 @@ app.use(express.json({ limit: '10mb' }))
 app.use(cors())
 
 mongoose
-    .connect('mongodb+srv://sahizain9:MdjFHvnmSufQ0SBJ@cluster0.ili8uib.mongodb.net/', {
+    .connect('mongodb+srv://sahizain9:zaintariqsahizaintariqsahi@cluster0.ili8uib.mongodb.net/sellnet', {
         useNewUrlParser: true,
         useUnifiedTopology: true
     })
